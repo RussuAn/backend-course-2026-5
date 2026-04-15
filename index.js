@@ -65,8 +65,18 @@ const server = http.createServer(async (req, res) => {
       });
       return;
     } else if (req.method === "DELETE") {
-      res.writeHead(501);
-      res.end("Not implemented yet");
+      try {
+        await fsPromises.unlink(filePath);
+        res.writeHead(200);
+        res.end("OK");
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          res.writeHead(404);
+          res.end("Not Found");
+        } else {
+          res.writeHead(500);
+          res.end("Error deleting file");
+        }}
     } else {
       res.writeHead(405);
       res.end("Method not allowed");
