@@ -48,12 +48,28 @@ const server = http.createServer(async (req, res) => {
           throw err;
         }
       }
-    } else if (req.method === "PUT" || req.method === "DELETE") {
+    } else if (req.method === "PUT") {
+      let body = [];
+      req.on("data", (chunk) => {
+        body.push(chunk);
+      }).on("end", async () => {
+        try {
+          const buffer = Buffer.concat(body);
+          await fsPromises.writeFile(filePath, buffer);
+          res.writeHead(201);
+          res.end("Created");
+        } catch (err) {
+          res.writeHead(500);
+          res.end("Error saving file");
+        }
+      });
+      return;
+    } else if (req.method === "DELETE") {
       res.writeHead(501);
-      res.end("Not Implemented Yet");
+      res.end("Not implemented yet");
     } else {
       res.writeHead(405);
-      res.end("Method Not Allowed");
+      res.end("Method not allowed");
     }
   } catch (err) {
     res.writeHead(500);
