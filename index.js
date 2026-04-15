@@ -1,6 +1,8 @@
 const { Command } = require("commander");
 const fs = require("fs");
+const fsPromises = require("fs/promises");
 const http = require("http");
+const path = require("path");
 
 const program = new Command();
 
@@ -28,9 +30,35 @@ if (!fs.existsSync(options.cache)) {
   console.log(`Cache directory created at: ${options.cache}`);
 }
 
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Proxy server is running!\n");
+const server = http.createServer(async (req, res) => {
+  const code = req.url.slice(1);
+  const filePath = path.join(options.cache, `${code}.jpg`);
+
+  try {
+    if (req.method === "GET") {
+      try {
+        const data = await fsPromises.readFile(filePath);
+        res.writeHead(200, { "Content-Type": "image/jpeg" });
+        res.end(data);
+      } catch (err) {
+        if (err.code === "ENOENT") {
+          res.writeHead(404);
+          res.end("Not Found");
+        } else {
+          throw err;
+        }
+      }
+    } else if (req.method === "PUT" || req.method === "DELETE") {
+      res.writeHead(501);
+      res.end("Not Implemented Yet");
+    } else {
+      res.writeHead(405);
+      res.end("Method Not Allowed");
+    }
+  } catch (err) {
+    res.writeHead(500);
+    res.end("Internal Server Error");
+  }
 });
 
 server.listen(parseInt(options.port), options.host, () => {
