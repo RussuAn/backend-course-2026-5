@@ -3,6 +3,7 @@ const fs = require("fs");
 const fsPromises = require("fs/promises");
 const http = require("http");
 const path = require("path");
+const superagent = require("superagent");
 
 const program = new Command();
 
@@ -42,8 +43,18 @@ const server = http.createServer(async (req, res) => {
         res.end(data);
       } catch (err) {
         if (err.code === "ENOENT") {
-          res.writeHead(404);
-          res.end("Not Found");
+          try {
+            const result = await superagent.get(`https://http.cat/${code}`).buffer(true);
+            const imageBuffer = result.body;
+
+            await fsPromises.writeFile(filePath, imageBuffer);
+
+            res.writeHead(200, { "Content-Type": "image/jpeg" });
+            res.end(imageBuffer);
+          } catch (externalErr) {
+            res.writeHead(404);
+            res.end("Not Found");
+          }
         } else {
           throw err;
         }
